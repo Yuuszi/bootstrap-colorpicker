@@ -1,6 +1,5 @@
 {
   "name": "mjolnic-bootstrap-colorpicker",
-  "version": "2.3.0",
   "main": [
     "dist/css/bootstrap-colorpicker.css",
     "dist/js/bootstrap-colorpicker.js"
@@ -11,7 +10,6 @@
   },
   "ignore": [
     "\\.*",
-    "/src",
     "/index.html",
     "/package.json",
     "/composer.json",

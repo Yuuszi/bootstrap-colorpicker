@@ -105,6 +105,11 @@
       this.color = new Color(this.options.color !== false ? this.options.color : this.getValue(), this.options.colorSelectors);
       this.format = this.options.format !== false ? this.options.format : this.color.origFormat;
 
+      if (this.options.color !== false) {
+        this.updateInput(this.color);
+        this.updateData(this.color);
+      }
+
       // Setup picker
       this.picker = $(this.options.template);
       if (this.options.customClass) {
@@ -123,6 +128,9 @@
       }
       if (this.options.align === 'right') {
         this.picker.addClass('colorpicker-right');
+      }
+      if (this.options.inline === true) {
+        this.picker.addClass('colorpicker-no-arrow');
       }
       if (this.options.colorSelectors) {
         var colorpicker = this;
