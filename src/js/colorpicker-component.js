@@ -5,12 +5,16 @@
  * @param {Object} options
  * @constructor
  */
-var Colorpicker = function (element, options) {
+var Colorpicker = function(element, options) {
   this.element = $(element)
     .addClass('colorpicker-element');
   this.options = $.extend(true, {}, defaults, this.element.data(), options);
   this.container = this.options.container ? $(this.options.container) : this.element;
   this.container.addClass('colorpicker-container');
+
+  if (!this.options.color && this.element.is('input, textarea')) {
+    this.options.color = this.element.val();
+  }
 
   // Set color
   this.setColor(this.options.color, false);
@@ -29,6 +33,13 @@ var Colorpicker = function (element, options) {
     (this.options.format === 'rgba' || this.options.format === 'hsla' || !this.options.format)) {
     this.component.addClass('colorpicker-with-alpha');
   } else {
+    // Force a non-alpha format if the alpha bar is not present
+    if (!this.options.format) {
+      this.options.format = 'rgb';
+    } else {
+      this.options.format = (this.options.format === 'rgba') ?
+        'rgb' : ((this.options.format === 'hsla') ? 'hsl' : this.options.format);
+    }
     this.component.addClass('colorpicker-without-alpha');
   }
 
@@ -60,7 +71,7 @@ var Colorpicker = function (element, options) {
   // Update for the first time
   this.update(null, false);
 
-  $($.proxy(function () {
+  $($.proxy(function() {
     this._trigger(this.element, 'colorpicker_create');
   }, this));
 };
@@ -74,20 +85,20 @@ Colorpicker.prototype = {
     top: 0
   },
   constructor: Colorpicker,
-  destructor: function () {
+  destructor: function() {
     this.component.remove();
     this.element.removeData('colorpicker', 'color').off('.colorpicker');
     this.element.removeClass('colorpicker-element');
     this.container.removeClass('colorpicker-container');
     this._trigger(this.element, 'colorpicker_destroy');
   },
-  addPalette: function (paletteColors) {
+  addPalette: function(paletteColors) {
     var self = this,
       $paletteContainer = this.component.find('.colorpicker-palettes');
 
     if ($paletteContainer.length) {
       var $palette = $('<div class="colorpicker-addon colorpicker-palette"></div>');
-      $.each(paletteColors, function (i, color) {
+      $.each(paletteColors, function(i, color) {
         var colorName = color;
         if (self.options.aliases[colorName] !== undefined) {
           color = self.options.aliases[colorName];
@@ -97,7 +108,7 @@ Colorpicker.prototype = {
         $btn.attr('data-palette-color-id', colorName)
           .attr('data-palette-color', color)
           .attr('title', (color !== colorName) ? (colorName + ': ' + color) : color)
-          .on('click.colorpicker touchstart.colorpicker', function () {
+          .on('click.colorpicker touchstart.colorpicker', function() {
             $palette.find('.colorpicker-palette-color').removeClass('colorpicker-palette-color-active');
             $btn.addClass('colorpicker-palette-color-active');
             self.color(color);
@@ -108,19 +119,19 @@ Colorpicker.prototype = {
       $paletteContainer.show();
     }
   },
-  show: function () {
+  show: function() {
     this.component
       .addClass('colorpicker-visible')
       .removeClass('colorpicker-hidden');
     this._trigger(this.element, 'colorpicker_show', this.getColor());
   },
-  hide: function () {
+  hide: function() {
     this.component
       .addClass('colorpicker-hidden')
       .removeClass('colorpicker-visible');
     this._trigger(this.element, 'colorpicker_hide', this.getColor());
   },
-  update: function (color, triggerEvent) {
+  update: function(color, triggerEvent) {
     color = this._isColorObject(color) ? color :
       (this._isString(color) ? this._safeColorObject(color) : this.getColor());
 
@@ -195,7 +206,7 @@ Colorpicker.prototype = {
 
     return true;
   },
-  setColor: function (val, triggerEvent) { // set color manually and return the color object
+  setColor: function(val, triggerEvent) { // set color manually and return the color object
     var color = null;
     if (!val) {
       // Remove color from JS instance and DOM data, display the default one in the component interface
@@ -214,14 +225,14 @@ Colorpicker.prototype = {
     }
     return color;
   },
-  getColor: function () {
+  getColor: function() {
     var val = this.element.data('color');
     if (!this._isColorObject(val)) {
       val = this.options.defaultColor ? this._safeColorObject(this.options.defaultColor) : null;
     }
     return val;
   },
-  color: function (newColor, triggerEvent) {
+  color: function(newColor, triggerEvent) {
     if (newColor !== undefined) {
       newColor = this.setColor(newColor, triggerEvent);
       this.update(newColor, triggerEvent);
@@ -229,7 +240,7 @@ Colorpicker.prototype = {
     }
     return this.getColor();
   },
-  mousedown: function (e) {
+  mousedown: function(e) {
     if (!$(e.originalEvent.target).is('.colorpicker-guide, .colorpicker-guide-container')) {
       return;
     }
@@ -278,7 +289,7 @@ Colorpicker.prototype = {
     }
     return false;
   },
-  mousemove: function (e) {
+  mousemove: function(e) {
     if (!e.pageX && !e.pageY && e.originalEvent && e.originalEvent.touches) {
       e.pageX = e.originalEvent.touches[0].pageX;
       e.pageY = e.originalEvent.touches[0].pageY;
@@ -315,16 +326,19 @@ Colorpicker.prototype = {
     if (this.currentGuide.zone.hasClass('colorpicker-alpha') && !this.options.format) {
       // Converting e.g. from hex / rgb to rgba
       if (color.value.a !== 1) {
-        color.origFormat = 'rgba';
+        color.parsedFormat = 'rgba';
       }
       // Converting e.g. from rgba to rgb
       else {
-        color.origFormat = 'rgb';
+        color.parsedFormat = 'rgb';
       }
+    } else if (this.component.hasClass('colorpicker-without-alpha') &&
+      (((color.value.h + color.value.s + color.value.b) !== 0) || (color.value.a > 0 && color.value.a < 1))) {
+      color.value.a = 1;
     }
     this.color(color);
   },
-  mouseup: function (e) {
+  mouseup: function(e) {
     e.stopPropagation();
     e.preventDefault();
     $(document).off({
@@ -335,20 +349,20 @@ Colorpicker.prototype = {
     });
     return false;
   },
-  _colorString: function (color, format) {
-    format = format || (this.options.format ? this.options.format : color.origFormat);
+  _colorString: function(color, format) {
+    format = format || (this.options.format ? this.options.format : color.parsedFormat);
     return color.toString(format);
   },
-  _isString: function (val) {
+  _isString: function(val) {
     return (typeof val === 'string') || (val instanceof String);
   },
-  _isColorObject: function (val) {
+  _isColorObject: function(val) {
     return val && ((typeof val === 'object') && (val.HSLtoRGB !== undefined));
   },
-  _safeColor: function (val) {
+  _safeColor: function(val) {
     return !this._isString(val) ? (this.options.defaultColor ? this.options.defaultColor : null) : val;
   },
-  _safeColorObject: function (val) {
+  _safeColorObject: function(val) {
     if (this._isColorObject(val)) {
       return val;
     }
@@ -357,14 +371,14 @@ Colorpicker.prototype = {
     }
     return new Color(this._safeColor(val));
   },
-  _trigger: function (element, eventName, colorObj, colorStr) {
+  _trigger: function(element, eventName, colorObj, colorStr) {
     return element.trigger({
       type: eventName,
       color: colorObj === undefined ? null : colorObj,
       value: colorStr === undefined ? null : colorStr
     });
   },
-  _alphaGradient: function (color, to) {
+  _alphaGradient: function(color, to) {
     if (!this._isColorObject(color)) {
       return "";
     }
@@ -377,13 +391,13 @@ Colorpicker.prototype = {
 
 $.colorpicker = Colorpicker;
 
-$.fn.colorpicker = function (option) {
+$.fn.colorpicker = function(option) {
   var apiArgs = Array.prototype.slice.call(arguments, 1),
     returnValue = null,
     hasReturnValue = false,
     isSingleElement = (this.length === 1);
 
-  var $jq = this.each(function () {
+  var $jq = this.each(function() {
     var $this = $(this),
       inst = $this.data('colorpicker'),
       options = ((typeof option === 'object') ? option : {});
